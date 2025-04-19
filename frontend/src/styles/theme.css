@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Colores principales */
+  --primary-gradient: linear-gradient(135deg, #5B21B6 0%, #2563EB 100%);
+  --primary-purple: #5B21B6;
+  --primary-blue: #2563EB;
+  --success-green: #10B981;
+  --warning-orange: #F59E0B;
+  --danger-red: #EF4444;
+  
+  /* Colores de fondo */
+  --bg-white: rgba(255, 255, 255, 0.95);
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  
+  /* Bordes y sombras */
+  --border-radius: 16px;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  /* Espaciado */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--primary-gradient);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  color: #1F2937;
+}
+
+/* Estilos de tarjetas */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
+  padding: var(--spacing-md);
+  margin: var(--spacing-sm);
+}
+
+/* Estilos de botones */
+.btn {
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary-gradient);
+  color: white;
+}
+
+.btn-success {
+  background-color: var(--success-green);
+  color: white;
+}
+
+/* Estilos de estado */
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-online {
+  background-color: var(--success-green);
+  color: white;
+}
+
+.status-away {
+  background-color: var(--warning-orange);
+  color: white;
+}
+
+/* Utilidades */
+.glass-effect {
+  background: var(--bg-white);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius);
+}
+
+.text-gradient {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
