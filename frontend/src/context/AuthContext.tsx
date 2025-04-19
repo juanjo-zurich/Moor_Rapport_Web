@@ -1,100 +1,106 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AuthContextType, User, LoginData, RegisterData } from '../types/auth';
 import { showNotification } from '../components/ui/Notifications';
 
-interface User {
-  id: number;
-  employee_number: string;
-  first_name: string;
-  last_name: string;
-  contact: string;
-  isAdmin: boolean;
-  is_active: boolean;
-}
+const AuthContext = createContext<AuthContextType | null>(null);
 
-interface AuthContextType {
-  user: User | null;
-  login: (employee_number: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const response = await fetch('http://localhost:8000/api/v1/users/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-            setIsAuthenticated(true);
-          } else {
-            localStorage.removeItem('token');
-            setUser(null);
-            setIsAuthenticated(false);
-          }
-        } catch (error) {
-          console.error('Error checking authentication:', error);
-          localStorage.removeItem('token');
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      }
-    };
-
     checkAuth();
   }, []);
 
-  const login = async (employee_number: string, password: string) => {
+  const checkAuth = async () => {
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', employee_number);
-      formData.append('password', password);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-      const response = await fetch('http://localhost:8000/api/v1/auth/token', {
+      const response = await fetch('http://localhost:8000/api/v1/auth/me/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        localStorage.removeItem('token');
+      }
+    } catch (err) {
+      console.error('Error checking auth:', err);
+      localStorage.removeItem('token');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (data: LoginData) => {
+    try {
+      setError(null);
+      const response = await fetch('http://localhost:8000/api/v1/auth/login/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: formData
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error('Credenciales inválidas');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error en el inicio de sesión');
       }
 
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token);
+      const { token, user: userData } = await response.json();
+      localStorage.setItem('token', token);
+      setUser(userData);
+      showNotification('Inicio de sesión exitoso', 'success');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+      showNotification(error.message, 'error');
+      throw error;
+    }
+  };
 
-      // Obtener datos del usuario
-      const userResponse = await fetch('http://localhost:8000/api/v1/users/me', {
+  const register = async (data: RegisterData) => {
+    try {
+      setError(null);
+      const response = await fetch('http://localhost:8000/api/v1/auth/register/', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${data.access_token}`
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
 
-      if (!userResponse.ok) {
-        throw new Error('Error al obtener datos del usuario');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error en el registro');
       }
 
-      const userData = await userResponse.json();
+      const { token, user: userData } = await response.json();
+      localStorage.setItem('token', token);
       setUser(userData);
-      setIsAuthenticated(true);
-      showNotification('Inicio de sesión exitoso', 'success');
-    } catch (error) {
-      const err = error as Error;
-      showNotification(err.message || 'Error al iniciar sesión', 'error');
+      showNotification('Registro exitoso', 'success');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+      showNotification(error.message, 'error');
       throw error;
     }
   };
@@ -102,21 +108,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    setIsAuthenticated(false);
     showNotification('Sesión cerrada exitosamente', 'success');
   };
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const value: AuthContextType = {
+    user,
+    loading,
+    error,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+  };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
